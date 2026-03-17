@@ -72,9 +72,6 @@ jobs:
         run: |
           FORMULA_PATH="Formula/${{ inputs.formula }}.rb"
 
-          # Update version
-          sed -i '' "s/version \".*\"/version \"${{ steps.resolve.outputs.bare_version }}\"/" "$FORMULA_PATH"
-
           # Update download URL
           sed -i '' "s|releases/download/[^/]*/[^\"]*|releases/download/${{ steps.resolve.outputs.tag }}/${{ steps.resolve.outputs.asset_name }}|" "$FORMULA_PATH"
 
