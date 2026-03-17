@@ -85,6 +85,18 @@ jobs:
           echo "=== Updated $FORMULA_PATH ==="
           cat "$FORMULA_PATH"
 
+      - name: Validate formula with Homebrew
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_ENV_HINTS: "1"
+        run: |
+          FORMULA_PATH="Formula/${{ inputs.formula }}.rb"
+          FORMULA_NAME="${{ inputs.formula }}"
+
+          brew audit --strict --formula "./${FORMULA_PATH}"
+          brew install --build-from-source "./${FORMULA_PATH}"
+          brew test "${FORMULA_NAME}"
+
       - name: Commit and push
         run: |
           git config --global user.name '${{ github.actor }}'

@@ -10,7 +10,7 @@ class Lockknife < Formula
   version "1.0.0"
 
   url "https://github.com/ImKKingshuk/LockKnife/releases/download/v1.0.0/lockknife-1.0.0.tar.gz"
-  sha256 "73b51365f2e358e6ca242fa4d636a0b69a8e2f8f6d2af57809ba6d4650dbcce0"
+  sha256 "REPLACE_WITH_ACTUAL_SHA256"
 
   depends_on arch: :arm64
   depends_on "python@3.12"
@@ -18,5 +18,9 @@ class Lockknife < Formula
 
   def install
     virtualenv_install_with_resources
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/lockknife --version")
   end
 end
