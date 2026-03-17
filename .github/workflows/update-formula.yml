@@ -78,8 +78,8 @@ jobs:
           # Update download URL (matches any github release URL ending in a known extension)
           sed -i '' "s|releases/download/v[^/]*/[^\"]*|releases/download/${{ steps.resolve.outputs.tag }}/${{ steps.resolve.outputs.asset_name }}|" "$FORMULA_PATH"
 
-          # Update SHA-256
-          sed -i '' "s/sha256 \"[a-fA-F0-9_]*\"/sha256 \"${{ steps.sha.outputs.sha }}\"/" "$FORMULA_PATH"
+          # Update SHA-256 (matches any content between quotes, not just hex)
+          sed -i '' "s/sha256 \"[^\"]*\"/sha256 \"${{ steps.sha.outputs.sha }}\"/" "$FORMULA_PATH"
 
           echo ""
           echo "=== Updated $FORMULA_PATH ==="
@@ -90,5 +90,9 @@ jobs:
           git config --global user.name '${{ github.actor }}'
           git config --global user.email '${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com'
           git add "Formula/${{ inputs.formula }}.rb"
-          git commit -m "formula: update ${{ inputs.formula }} to ${{ inputs.version }}"
-          git push
+          if git diff --cached --quiet; then
+            echo "Formula already up to date — nothing to commit."
+          else
+            git commit -m "formula: update ${{ inputs.formula }} to ${{ inputs.version }}"
+            git push
+          fi
