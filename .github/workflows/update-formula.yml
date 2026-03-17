@@ -92,10 +92,12 @@ jobs:
         run: |
           FORMULA_PATH="Formula/${{ inputs.formula }}.rb"
           FORMULA_NAME="${{ inputs.formula }}"
+          TAP_NAME="ImKKingshuk/tap"
 
-          brew audit --strict --formula "./${FORMULA_PATH}"
-          brew install --build-from-source "./${FORMULA_PATH}"
-          brew test "${FORMULA_NAME}"
+          brew tap --overwrite-local "${TAP_NAME}" "$GITHUB_WORKSPACE"
+          brew audit --strict "${TAP_NAME}/${FORMULA_NAME}"
+          brew install --build-from-source "${TAP_NAME}/${FORMULA_NAME}"
+          brew test "${TAP_NAME}/${FORMULA_NAME}"
 
       - name: Commit and push
         run: |
