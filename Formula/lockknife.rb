@@ -17,7 +17,8 @@ class Lockknife < Formula
 
   def install
     venv = virtualenv_create(libexec, "python3.12")
-    system libexec/"bin/pip", "install", "--no-deps", "--no-cache-dir", Dir["*.whl"].first
+    wheel_url = "https://github.com/ImKKingshuk/LockKnife/releases/download/v#{version}/lockknife-#{version}-cp311-abi3-macosx_11_0_arm64.whl"
+    system libexec/"bin/pip", "install", "--no-deps", "--no-cache-dir", wheel_url
     bin.install_symlink Dir[libexec/"bin/lockknife"]
   end
 end
