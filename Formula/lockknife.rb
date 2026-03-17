@@ -10,7 +10,7 @@ class Lockknife < Formula
   version "1.0.0"
 
   url "https://github.com/ImKKingshuk/LockKnife/releases/download/v1.0.0/lockknife-1.0.0-cp311-abi3-macosx_11_0_arm64.whl"
-  sha256 "REPLACE_WITH_ACTUAL_SHA256"
+  sha256 "586a547011739f496f93ab58d621103d032cc93d1d73a2796bb6da57ff28b48b"
 
   depends_on arch: :arm64
   depends_on "python@3.12"
