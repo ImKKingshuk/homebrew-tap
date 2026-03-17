@@ -12,7 +12,7 @@ on:
           # Add more formulas here:
           # - exampletool
       version:
-        description: "New version (e.g. 1.5.5)"
+        description: "New version (e.g. v1.5.5)"
         required: true
         type: string
 
@@ -39,11 +39,11 @@ jobs:
           case "$FORMULA" in
             lockknife)
               REPO="ImKKingshuk/LockKnife"
-              ASSET_NAME="lockknife-${BARE_VERSION}-cp311-abi3-macosx_11_0_arm64.whl"
+              ASSET_NAME="lockknife-${BARE_VERSION}.tar.gz"
               ;;
             # exampletool)
             #   REPO="ImKKingshuk/exampletool"
-            #   ASSET_NAME="exampletool-${VERSION}-arm64.tar.gz"
+            #   ASSET_NAME="exampletool-${BARE_VERSION}.tar.gz"
             #   ;;
             *)
               echo "::error::Unknown formula: $FORMULA"
@@ -75,10 +75,10 @@ jobs:
           # Update version
           sed -i '' "s/version \".*\"/version \"${{ steps.resolve.outputs.bare_version }}\"/" "$FORMULA_PATH"
 
-          # Update download URL (matches any github release URL ending in a known extension)
-          sed -i '' "s|releases/download/v[^/]*/[^\"]*|releases/download/${{ steps.resolve.outputs.tag }}/${{ steps.resolve.outputs.asset_name }}|" "$FORMULA_PATH"
+          # Update download URL
+          sed -i '' "s|releases/download/[^/]*/[^\"]*|releases/download/${{ steps.resolve.outputs.tag }}/${{ steps.resolve.outputs.asset_name }}|" "$FORMULA_PATH"
 
-          # Update SHA-256 (matches any content between quotes, not just hex)
+          # Update SHA-256 (matches any content between quotes)
           sed -i '' "s/sha256 \"[^\"]*\"/sha256 \"${{ steps.sha.outputs.sha }}\"/" "$FORMULA_PATH"
 
           echo ""
