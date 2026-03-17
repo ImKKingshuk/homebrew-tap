@@ -40,7 +40,7 @@ brew update && brew upgrade lockknife
 
 ## Requirements
 
-- macOS Ventura (13.0) or later
+- macOS (Apple Silicon)
 - Homebrew 4.0+
 
 ## License
