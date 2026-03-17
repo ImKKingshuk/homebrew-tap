@@ -1,0 +1,94 @@
+name: Update Formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      formula:
+        description: "Formula to update"
+        required: true
+        type: choice
+        options:
+          - lockknife
+          # Add more formulas here:
+          # - exampletool
+      version:
+        description: "New version (e.g. 1.5.5)"
+        required: true
+        type: string
+
+jobs:
+  update:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve asset URL
+        id: resolve
+        run: |
+          FORMULA="${{ inputs.formula }}"
+          VERSION="${{ inputs.version }}"
+          TAG="${VERSION}"
+          BARE_VERSION="${VERSION#v}"
+
+          # ──────────────────────────────────────────────────
+          # Asset URL config — add new projects here
+          # ──────────────────────────────────────────────────
+          case "$FORMULA" in
+            lockknife)
+              REPO="ImKKingshuk/LockKnife"
+              ASSET_NAME="lockknife-${BARE_VERSION}-cp311-abi3-macosx_11_0_arm64.whl"
+              ;;
+            # exampletool)
+            #   REPO="ImKKingshuk/exampletool"
+            #   ASSET_NAME="exampletool-${VERSION}-arm64.tar.gz"
+            #   ;;
+            *)
+              echo "::error::Unknown formula: $FORMULA"
+              exit 1
+              ;;
+          esac
+
+          ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET_NAME}"
+
+          echo "asset_url=${ASSET_URL}" >> "$GITHUB_OUTPUT"
+          echo "asset_name=${ASSET_NAME}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "bare_version=${BARE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
+
+      - name: Download and compute SHA-256
+        id: sha
+        run: |
+          echo "Downloading: ${{ steps.resolve.outputs.asset_name }}"
+          curl -fsSL -o /tmp/asset "${{ steps.resolve.outputs.asset_url }}"
+          SHA=$(shasum -a 256 /tmp/asset | awk '{print $1}')
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "SHA-256: ${SHA}"
+
+      - name: Update formula file
+        run: |
+          FORMULA_PATH="Formula/${{ inputs.formula }}.rb"
+
+          # Update version
+          sed -i '' "s/version \".*\"/version \"${{ steps.resolve.outputs.bare_version }}\"/" "$FORMULA_PATH"
+
+          # Update download URL (matches any github release URL ending in a known extension)
+          sed -i '' "s|releases/download/v[^/]*/[^\"]*|releases/download/${{ steps.resolve.outputs.tag }}/${{ steps.resolve.outputs.asset_name }}|" "$FORMULA_PATH"
+
+          # Update SHA-256
+          sed -i '' "s/sha256 \"[a-fA-F0-9_]*\"/sha256 \"${{ steps.sha.outputs.sha }}\"/" "$FORMULA_PATH"
+
+          echo ""
+          echo "=== Updated $FORMULA_PATH ==="
+          cat "$FORMULA_PATH"
+
+      - name: Commit and push
+        run: |
+          git config --global user.name '${{ github.actor }}'
+          git config --global user.email '${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com'
+          git add "Formula/${{ inputs.formula }}.rb"
+          git commit -m "formula: update ${{ inputs.formula }} to ${{ inputs.version }}"
+          git push

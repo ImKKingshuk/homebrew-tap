@@ -1,3 +1,14 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.fleet/
+*.swp
+*.swo
+*~
+
+# Ruby
 *.gem
 *.rbc
 /.config
