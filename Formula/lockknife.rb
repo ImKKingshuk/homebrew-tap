@@ -10,9 +10,9 @@ class Lockknife < Formula
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   license "GPL-3.0-only"
 
-  depends_on arch: :arm64
   depends_on "rust" => :build
   depends_on "python@3.12"
+  depends_on arch: :arm64
 
   def install
     virtualenv_install_with_resources
