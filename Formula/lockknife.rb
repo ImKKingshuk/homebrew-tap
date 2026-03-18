@@ -11,8 +11,8 @@ class Lockknife < Formula
   license "GPL-3.0-only"
 
   depends_on "rust" => :build
-  depends_on "python@3.12"
   depends_on arch: :arm64
+  depends_on "python@3.12"
 
   def install
     virtualenv_install_with_resources
