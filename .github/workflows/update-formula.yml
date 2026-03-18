@@ -52,11 +52,11 @@ jobs:
           esac
 
           ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET_NAME}"
-          echo "asset_url=${ASSET_URL}"   >> "$GITHUB_OUTPUT"
-          echo "asset_name=${ASSET_NAME}" >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG}"               >> "$GITHUB_OUTPUT"
+          echo "asset_url=${ASSET_URL}"       >> "$GITHUB_OUTPUT"
+          echo "asset_name=${ASSET_NAME}"     >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}"                   >> "$GITHUB_OUTPUT"
           echo "bare_version=${BARE_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "repo=${REPO}"             >> "$GITHUB_OUTPUT"
+          echo "repo=${REPO}"                 >> "$GITHUB_OUTPUT"
 
       - name: Download and compute SHA-256
         id: sha
@@ -86,16 +86,15 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_ENV_HINTS: "1"
         run: |
-          FORMULA_PATH="Formula/${{ inputs.formula }}.rb"
           FORMULA_NAME="${{ inputs.formula }}"
           TAP_NAME="ImKKingshuk/tap"
 
           brew untap "${TAP_NAME}" 2>/dev/null || true
 
-          brew audit --strict "${FORMULA_PATH}"
-          brew install --build-from-source "${FORMULA_PATH}"
-
           brew tap "${TAP_NAME}" "$GITHUB_WORKSPACE"
+
+          brew audit --strict "${TAP_NAME}/${FORMULA_NAME}"
+          brew install --build-from-source "${TAP_NAME}/${FORMULA_NAME}"
           brew test "${TAP_NAME}/${FORMULA_NAME}"
 
       - name: Commit and push
@@ -109,4 +108,3 @@ jobs:
             git commit -m "formula: update ${{ inputs.formula }} to ${{ inputs.version }}"
             git push
           fi
-          
