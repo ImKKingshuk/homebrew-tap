@@ -105,4 +105,7 @@ jobs:
           brew test "${TAP_NAME}/${FORMULA_NAME}"
 
       - name: Push
-        run: git push
+        run: |
+          git fetch origin main
+          git rebase origin/main
+          git push
