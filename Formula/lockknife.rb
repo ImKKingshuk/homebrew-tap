@@ -15,7 +15,12 @@ class Lockknife < Formula
   depends_on "python@3.12"
 
   def install
-    virtualenv_install_with_resources
+    venv = virtualenv_create(libexec, "python3.12", system_site_packages: false)
+
+    system Formula["python@3.12"].opt_bin/"python3.12", "-m", "pip",
+           "--python=#{venv.root}/bin/python", "install", buildpath
+
+    bin.install_symlink libexec/"bin/lockknife"
   end
 
   test do
