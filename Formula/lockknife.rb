@@ -6,8 +6,8 @@ class Lockknife < Formula
 
   desc "Ultimate Android Security Research Tool"
   homepage "https://lockknife.vercel.app"
-  url "https://github.com/ImKKingshuk/LockKnife/releases/download/v1.0.0/lockknife-1.0.0.tar.gz"
-  sha256 "a8c7439d29929f5e4ccab6f248a783c03ac63a929a6fea1975f2b932d04c40cb"
+  url "https://github.com/ImKKingshuk/LockKnife/releases/download/v1.1.0/lockknife-1.1.0.tar.gz"
+  sha256 "216e72255a5856e263793337ac78b499ae2f530621b10fa3eaa526a70bddb4a0"
   license "GPL-3.0-only"
 
   depends_on "rust" => :build
