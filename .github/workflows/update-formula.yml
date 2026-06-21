@@ -9,6 +9,7 @@ on:
         type: choice
         options:
           - lockknife
+          - bloatwarehatao
           # Add more formulas here:
           # - exampletool
       version:
@@ -41,6 +42,10 @@ jobs:
               REPO="ImKKingshuk/LockKnife"
               ASSET_NAME="lockknife-${BARE_VERSION}.tar.gz"
               ;;
+            bloatwarehatao)
+              REPO="ImKKingshuk/BloatwareHatao"
+              ASSET_NAME="bloatwarehatao-${BARE_VERSION}-aarch64-apple-darwin.tar.gz"
+              ;;
             # exampletool)
             #   REPO="ImKKingshuk/exampletool"
             #   ASSET_NAME="exampletool-${BARE_VERSION}.tar.gz"
@@ -71,10 +76,43 @@ jobs:
         run: |
           FORMULA_PATH="Formula/${{ inputs.formula }}.rb"
 
-          # Update download URL
-          sed -i '' "s|releases/download/[^/]*/[^\"]*|releases/download/${{ steps.resolve.outputs.tag }}/${{ steps.resolve.outputs.asset_name }}|" "$FORMULA_PATH"
+          if [ ! -f "$FORMULA_PATH" ]; then
+            case "${{ inputs.formula }}" in
+              bloatwarehatao)
+                {
+                  printf '%s\n' '# typed: false'
+                  printf '%s\n' '# frozen_string_literal: true'
+                  printf '%s\n' ''
+                  printf '%s\n' 'class Bloatwarehatao < Formula'
+                  printf '%s\n' '  desc "Ultimate Android Bloatware Removal Tool"'
+                  printf '%s\n' '  homepage "https://github.com/ImKKingshuk/BloatwareHatao"'
+                  printf '%s\n' '  url "__ASSET_URL__"'
+                  printf '%s\n' '  sha256 "__SHA256__"'
+                  printf '%s\n' '  license "GPL-3.0-only"'
+                  printf '%s\n' ''
+                  printf '%s\n' '  depends_on arch: :arm64'
+                  printf '%s\n' '  depends_on "android-platform-tools"'
+                  printf '%s\n' ''
+                  printf '%s\n' '  def install'
+                  printf '%s\n' '    bin.install "bloatwarehatao"'
+                  printf '%s\n' '    prefix.install "README.md", "LICENSE", "CHANGELOG.md", "packages"'
+                  printf '%s\n' '  end'
+                  printf '%s\n' ''
+                  printf '%s\n' '  test do'
+                  printf '%s\n' '    assert_match version.to_s, shell_output("#{bin}/bloatwarehatao --version")'
+                  printf '%s\n' '  end'
+                  printf '%s\n' 'end'
+                } > "$FORMULA_PATH"
+                ;;
+              *)
+                echo "::error::Formula file does not exist: $FORMULA_PATH"
+                exit 1
+                ;;
+            esac
+          fi
 
-          # Update SHA-256
+          # Update download URL and SHA-256.
+          sed -i '' "s|url \"[^\"]*\"|url \"${{ steps.resolve.outputs.asset_url }}\"|" "$FORMULA_PATH"
           sed -i '' "s/sha256 \"[^\"]*\"/sha256 \"${{ steps.sha.outputs.sha }}\"/" "$FORMULA_PATH"
 
           echo ""

@@ -17,6 +17,9 @@ brew tap ImKKingshuk/tap
 | Formula | Description | Install |
 |---------|-------------|---------|
 | **LockKnife** | The Ultimate Android Security Research Tool | `brew install lockknife` |
+| **BloatwareHatao** | The Ultimate Android Bloatware Removal Tool | `brew install bloatwarehatao` |
+
+BloatwareHatao becomes installable after its first GitHub release is published and the `Update Formula` workflow generates `Formula/bloatwarehatao.rb`.
 
 ## Available Casks
 
@@ -30,12 +33,15 @@ brew tap ImKKingshuk/tap
 
 # Install a formula
 brew install lockknife
+brew install bloatwarehatao
 
 # Or install directly without tapping
 brew install ImKKingshuk/tap/lockknife
+brew install ImKKingshuk/tap/bloatwarehatao
 
 # Update
 brew update && brew upgrade lockknife
+brew update && brew upgrade bloatwarehatao
 ```
 
 ## Requirements
