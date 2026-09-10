@@ -1,0 +1,233 @@
+name: Update Formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      formula:
+        description: "Formula to update"
+        required: true
+        type: choice
+        options:
+          - lockknife
+          - bloatwarehatao
+          - stealthix
+          # Add more formulas here:
+          # - exampletool
+      version:
+        description: "New version (e.g. v1.5.5)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve asset URL
+        id: resolve
+        env:
+          INPUT_FORMULA: ${{ inputs.formula }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          FORMULA="$INPUT_FORMULA"
+          VERSION="$INPUT_VERSION"
+
+          if [[ ! "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must use the form v1.2.3 or 1.2.3"
+            exit 1
+          fi
+
+          BARE_VERSION="${VERSION#v}"
+          TAG="v${BARE_VERSION}"
+
+          # ──────────────────────────────────────────────────
+          # Asset URL config — add new projects here
+          # ──────────────────────────────────────────────────
+          case "$FORMULA" in
+            lockknife)
+              REPO="ImKKingshuk/LockKnife"
+              ASSET_NAME="lockknife-${BARE_VERSION}.tar.gz"
+              ;;
+            bloatwarehatao)
+              REPO="ImKKingshuk/BloatwareHatao"
+              ASSET_NAME="bloatwarehatao-${BARE_VERSION}-aarch64-apple-darwin.tar.gz"
+              ;;
+            stealthix)
+              REPO="ImKKingshuk/Stealthix"
+              ASSET_NAME="stealthix-${BARE_VERSION}.tar.gz"
+              ;;
+            # exampletool)
+            #   REPO="ImKKingshuk/exampletool"
+            #   ASSET_NAME="exampletool-${BARE_VERSION}.tar.gz"
+            #   ;;
+            *)
+              echo "::error::Unknown formula: $FORMULA"
+              exit 1
+              ;;
+          esac
+
+          ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET_NAME}"
+          echo "asset_url=${ASSET_URL}"       >> "$GITHUB_OUTPUT"
+          echo "asset_name=${ASSET_NAME}"     >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}"                   >> "$GITHUB_OUTPUT"
+          echo "bare_version=${BARE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "repo=${REPO}"                 >> "$GITHUB_OUTPUT"
+
+      - name: Download and compute SHA-256
+        id: sha
+        run: |
+          echo "Downloading: ${{ steps.resolve.outputs.asset_name }}"
+          curl -fsSL -o /tmp/asset "${{ steps.resolve.outputs.asset_url }}"
+          SHA=$(shasum -a 256 /tmp/asset | awk '{print $1}')
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "SHA-256: ${SHA}"
+
+      - name: Update formula file
+        id: formula
+        env:
+          INPUT_FORMULA: ${{ inputs.formula }}
+          ASSET_URL: ${{ steps.resolve.outputs.asset_url }}
+          ASSET_SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          FORMULA_PATH="Formula/${INPUT_FORMULA}.rb"
+
+          if [ ! -f "$FORMULA_PATH" ]; then
+            case "$INPUT_FORMULA" in
+              stealthix)
+                {
+                  printf '%s\n' '# typed: false'
+                  printf '%s\n' '# frozen_string_literal: true'
+                  printf '%s\n' ''
+                  printf '%s\n' 'class Stealthix < Formula'
+                  printf '%s\n' '  include Language::Python::Virtualenv'
+                  printf '%s\n' ''
+                  printf '%s\n' '  desc "Database injection detection toolkit for SQL, NoSQL, and NewSQL"'
+                  printf '%s\n' '  homepage "https://github.com/ImKKingshuk/Stealthix"'
+                  printf '%s\n' '  url "__ASSET_URL__"'
+                  printf '%s\n' '  sha256 "__SHA256__"'
+                  printf '%s\n' '  license "GPL-3.0-or-later"'
+                  printf '%s\n' ''
+                  printf '%s\n' '  depends_on "rust" => :build'
+                  printf '%s\n' '  depends_on "python@3.12"'
+                  printf '%s\n' ''
+                  printf '%s\n' '  def install'
+                  printf '%s\n' '    venv = virtualenv_create(libexec, "python3.12", system_site_packages: false)'
+                  printf '%s\n' ''
+                  printf '%s\n' '    system formula_opt_bin("python@3.12")/"python3.12", "-m", "pip",'
+                  printf '%s\n' '           "--python=#{venv.root}/bin/python", "install", "--no-binary=:all:", buildpath'
+                  printf '%s\n' ''
+                  printf '%s\n' '    bin.install_symlink libexec/"bin/stealthix"'
+                  printf '%s\n' '  end'
+                  printf '%s\n' ''
+                  printf '%s\n' '  test do'
+                  printf '%s\n' '    assert_match version.to_s, shell_output("#{bin}/stealthix --version")'
+                  printf '%s\n' '  end'
+                  printf '%s\n' 'end'
+                } > "$FORMULA_PATH"
+                ;;
+              *)
+                echo "::error::Formula file does not exist: $FORMULA_PATH"
+                exit 1
+                ;;
+            esac
+          fi
+
+          # Update download URL and SHA-256.
+          sed -i '' "s|url \"[^\"]*\"|url \"${ASSET_URL}\"|" "$FORMULA_PATH"
+          sed -i '' "s/sha256 \"[^\"]*\"/sha256 \"${ASSET_SHA}\"/" "$FORMULA_PATH"
+
+          CANDIDATE_SHA="$(shasum -a 256 "$FORMULA_PATH" | awk '{print $1}')"
+          echo "candidate_sha=${CANDIDATE_SHA}" >> "$GITHUB_OUTPUT"
+
+          echo ""
+          echo "=== Updated $FORMULA_PATH ==="
+          cat "$FORMULA_PATH"
+
+      - name: Commit candidate for local tap validation
+        env:
+          INPUT_FORMULA: ${{ inputs.formula }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "release-validation"
+          git config user.email "release-validation@users.noreply.github.com"
+          git add "Formula/${INPUT_FORMULA}.rb"
+
+          if ! git diff --cached --quiet; then
+            git commit -m "validate ${INPUT_FORMULA} ${INPUT_VERSION}"
+          fi
+
+      - name: Validate formula with Homebrew
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_ENV_HINTS: "1"
+          INPUT_FORMULA: ${{ inputs.formula }}
+        run: |
+          FORMULA_NAME="$INPUT_FORMULA"
+          TAP_NAME="ImKKingshuk/tap"
+
+          brew untap "${TAP_NAME}" 2>/dev/null || true
+
+          brew tap "${TAP_NAME}" "$GITHUB_WORKSPACE"
+
+          brew audit --strict "${TAP_NAME}/${FORMULA_NAME}"
+          brew install --build-from-source "${TAP_NAME}/${FORMULA_NAME}"
+          brew test "${TAP_NAME}/${FORMULA_NAME}"
+
+      - name: Verify validated formula was not modified
+        env:
+          INPUT_FORMULA: ${{ inputs.formula }}
+          EXPECTED_SHA: ${{ steps.formula.outputs.candidate_sha }}
+        run: |
+          FORMULA_PATH="Formula/${INPUT_FORMULA}.rb"
+          ACTUAL_SHA="$(shasum -a 256 "$FORMULA_PATH" | awk '{print $1}')"
+          if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+            echo "::error::Formula changed during validation"
+            exit 1
+          fi
+
+      - name: Upload validated formula
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: formula-${{ inputs.formula }}
+          path: Formula/${{ inputs.formula }}.rb
+          if-no-files-found: error
+
+  publish:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download validated formula
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: formula-${{ inputs.formula }}
+          path: Formula
+
+      - name: Commit and push formula
+        env:
+          INPUT_FORMULA: ${{ inputs.formula }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name '${{ github.actor }}'
+          git config user.email '${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com'
+          git add "Formula/${INPUT_FORMULA}.rb"
+
+          if git diff --cached --quiet; then
+            echo "No formula changes to commit."
+            exit 0
+          fi
+
+          git commit -m "formula: update ${INPUT_FORMULA} to ${INPUT_VERSION}"
+          git fetch origin main
+          git rebase origin/main
+          git push

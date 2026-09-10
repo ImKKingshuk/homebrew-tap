@@ -1,0 +1,41 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.fleet/
+*.swp
+*.swo
+*~
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+secrets.json
+
+# Generated output and caches
+dist/
+tmp/
+*.log
+*.sarif
+*.zip
+*.tar.gz
+*.whl
+*.gem
+*.rbc
+/.bundle/
+/.config/
+/coverage/
+/doc/
+/pkg/
+/rdoc/
+/spec/reports/
+/test/tmp/
+/vendor/bundle/
+.byebug_history
